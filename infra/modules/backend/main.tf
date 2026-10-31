@@ -35,19 +35,9 @@ module "alb" {
   # }
 
   listeners = {
-    http-https-redirect = {
+    backend = {
       port     = 80
       protocol = "HTTP"
-      redirect = {
-        port        = "443"
-        protocol    = "HTTPS"
-        status_code = "HTTP_301"
-      }
-    }
-    backend = {
-      port            = 443
-      protocol        = "HTTPS"
-      certificate_arn = var.certificate_arn
       forward = {
         target_group_key = "backend"
       }
@@ -72,7 +62,8 @@ module "alb" {
 }
 
 module "ecs" {
-  source = "terraform-aws-modules/ecs/aws"
+  cluster_capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+  source = "./ecs-module"
 
   cluster_name = "${var.name_prefix}-cluster"
 
@@ -116,7 +107,7 @@ module "ecs" {
           environment = [
             {
               name  = "SPRING_DATASOURCE_URL"
-              value = "jdbc:mysql://${var.db_host}:3306/${var.db_name}?allowPublicKeyRetrieval=true&useSSL=true&createDatabaseIfNotExist=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Europe/Paris"
+              value = "jdbc:mysql://${nonsensitive(var.db_host)}:3306/${var.db_name}?allowPublicKeyRetrieval=true&useSSL=true&createDatabaseIfNotExist=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Europe/Paris"
             },
             {
               name  = "SPRING_DATASOURCE_USERNAME"
@@ -124,7 +115,7 @@ module "ecs" {
             },
             {
               name  = "SPRING_DATASOURCE_PASSWORD"
-              value = var.db_password
+              value = nonsensitive(var.db_password)
             }
           ]
           readonlyRootFilesystem    = true

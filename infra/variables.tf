@@ -7,7 +7,7 @@ variable "environment" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-west-2"
+  default     = "ap-south-1"
 }
 
 variable "azs_count" {
@@ -64,7 +64,7 @@ variable "db_username" {
 variable "db_password" {
   description = "Database password"
   type        = string
-  # sensitive = true
+  # sensitive = false
 }
 
 variable "db_apply_immediately" {

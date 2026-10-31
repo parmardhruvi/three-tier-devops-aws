@@ -5,10 +5,10 @@ const config = {
     baseUrl: "http://localhost:8080",
   },
   production: {
-    baseUrl: "http://api.three-tier-app.com",
+    baseUrl: process.env.REACT_APP_API_BASE_URL || "http://three-tier-fe-alb-1226137904.ap-south-1.elb.amazonaws.com",
   },
 }
-  
+
 // axios instance for making requests
 const axiosInstance = axios.create({
   baseURL: config[process.env.NODE_ENV].baseUrl,

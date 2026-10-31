@@ -42,7 +42,9 @@ public class UserController {
     private final HobbieUserDetailsService hobbieUserDetailsService;
 
     @Autowired
-    public UserController(UserService userService, PasswordEncoder passwordEncoder, NotificationService notificationService, JWTUtility jwtUtility, AuthenticationManager authenticationManager, HobbieUserDetailsService hobbieUserDetailsService) {
+    public UserController(UserService userService, PasswordEncoder passwordEncoder,
+            NotificationService notificationService, JWTUtility jwtUtility, AuthenticationManager authenticationManager,
+            HobbieUserDetailsService hobbieUserDetailsService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.notificationService = notificationService;
@@ -58,18 +60,19 @@ public class UserController {
         if (this.userService.userExists(user.getUsername(), user.getEmail())) {
             throw new RuntimeException("Username or email address already in use.");
         }
-        AppClient client = this.userService.register(user);
-        return new ResponseEntity<AppClient>(client, HttpStatus.CREATED);
+        this.userService.register(user);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PostMapping("/register")
     @Operation(summary = "Create new business-user")
     public ResponseEntity<?> registerBusiness(@RequestBody BusinessRegisterDto business) {
-        if (this.userService.businessExists(business.getBusinessName()) || this.userService.userExists(business.getUsername(), business.getEmail())) {
+        if (this.userService.businessExists(business.getBusinessName())
+                || this.userService.userExists(business.getUsername(), business.getEmail())) {
             throw new RuntimeException("Username or email address already in use.");
         }
-        BusinessOwner businessOwner = this.userService.registerBusiness(business);
-        return new ResponseEntity<BusinessOwner>(businessOwner, HttpStatus.CREATED);
+        this.userService.registerBusiness(business);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @GetMapping("/client")
@@ -106,7 +109,7 @@ public class UserController {
         }
         return new ResponseEntity<>(userByEmail, HttpStatus.OK);
     }
-    
+
     @PutMapping("/password")
     @Operation(summary = "Update password, (use existing user id)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<?> setUpNewPassword(@RequestParam Long id, String password) {
@@ -120,7 +123,8 @@ public class UserController {
     @Operation(summary = "Update business-user, (use existing user id)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<?> updateBusiness(@RequestBody UpdateBusinessDto business) {
         BusinessOwner businessOwner = this.userService.findBusinessOwnerById(business.getId());
-        if (this.userService.businessExists(business.getBusinessName()) && (!businessOwner.getBusinessName().equals(business.getBusinessName()))) {
+        if (this.userService.businessExists(business.getBusinessName())
+                && (!businessOwner.getBusinessName().equals(business.getBusinessName()))) {
             throw new RuntimeException("Business name already in use.");
         }
         businessOwner.setBusinessName(business.getBusinessName());
@@ -148,17 +152,13 @@ public class UserController {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             jwtRequest.getUsername(),
-                            jwtRequest.getPassword()
-                    )
-            );
+                            jwtRequest.getPassword()));
         } catch (BadCredentialsException e) {
             throw new Exception("INVALID_CREDENTIALS", e);
         }
-        final UserDetails userDetails
-                = hobbieUserDetailsService.loadUserByUsername(jwtRequest.getUsername());
+        final UserDetails userDetails = hobbieUserDetailsService.loadUserByUsername(jwtRequest.getUsername());
 
-        final String token =
-                jwtUtility.generateToken(userDetails);
+        final String token = jwtUtility.generateToken(userDetails);
         return new JwtResponse(token);
     }
 
@@ -177,5 +177,3 @@ public class UserController {
         return null;
     }
 }
-
-

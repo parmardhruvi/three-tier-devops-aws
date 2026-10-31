@@ -49,35 +49,93 @@ public class HobbyServiceImpl implements HobbyService {
     @SneakyThrows
     @Override
     public void saveUpdatedHobby(Hobby hobby) {
-        Optional<Hobby> byId = this.hobbyRepository.findById(hobby.getId());
-        if (byId.isPresent()) {
-            deleteResourcesById(byId.get());
+        Hobby existing = this.hobbyRepository.findById(hobby.getId())
+                .orElseThrow(() -> new NotFoundException("This hobby does not exist"));
+
+        existing.setName(hobby.getName());
+        existing.setSlogan(hobby.getSlogan());
+        existing.setIntro(hobby.getIntro());
+        existing.setDescription(hobby.getDescription());
+        existing.setPrice(hobby.getPrice());
+        existing.setContactInfo(hobby.getContactInfo());
+        if (hobby.getCategory() != null) {
+            existing.setCategory(hobby.getCategory());
         }
-        this.hobbyRepository.save(hobby);
+        if (hobby.getLocation() != null) {
+            existing.setLocation(hobby.getLocation());
+        }
+        if (hobby.getProfileImgUrl() != null && !hobby.getProfileImgUrl().trim().isEmpty()) {
+            existing.setProfileImgUrl(hobby.getProfileImgUrl());
+        }
+        if (hobby.getProfileImg_id() != null && !hobby.getProfileImg_id().trim().isEmpty()) {
+            existing.setProfileImg_id(hobby.getProfileImg_id());
+        }
+        if (hobby.getGalleryImgUrl1() != null && !hobby.getGalleryImgUrl1().trim().isEmpty()) {
+            existing.setGalleryImgUrl1(hobby.getGalleryImgUrl1());
+        }
+        if (hobby.getGalleryImg1_id() != null && !hobby.getGalleryImg1_id().trim().isEmpty()) {
+            existing.setGalleryImg1_id(hobby.getGalleryImg1_id());
+        }
+        if (hobby.getGalleryImgUrl2() != null && !hobby.getGalleryImgUrl2().trim().isEmpty()) {
+            existing.setGalleryImgUrl2(hobby.getGalleryImgUrl2());
+        }
+        if (hobby.getGalleryImg2_id() != null && !hobby.getGalleryImg2_id().trim().isEmpty()) {
+            existing.setGalleryImg2_id(hobby.getGalleryImg2_id());
+        }
+        if (hobby.getGalleryImgUrl3() != null && !hobby.getGalleryImgUrl3().trim().isEmpty()) {
+            existing.setGalleryImgUrl3(hobby.getGalleryImgUrl3());
+        }
+        if (hobby.getGalleryImg3_id() != null && !hobby.getGalleryImg3_id().trim().isEmpty()) {
+            existing.setGalleryImg3_id(hobby.getGalleryImg3_id());
+        }
+
+        this.hobbyRepository.save(existing);
     }
 
     @Override
+    @Transactional
     public boolean deleteHobby(long id) throws Exception {
         Optional<Hobby> byId = this.hobbyRepository.findById(id);
         if (byId.isPresent()) {
-            deleteResourcesById(byId.get());
-            BusinessOwner business = this.userService.findBusinessByUsername(byId.get().getCreator());
-            business.getHobby_offers().remove(byId.get());
-            this.userService.findAndRemoveHobbyFromClientsRecords(byId.get());
-            this.hobbyRepository.deleteById(id);
+            Hobby hobby = byId.get();
+
+            // 1. Delete Cloudinary media safely
+            deleteResourcesById(hobby);
+
+            // 2. Remove all foreign key associations from join tables
+            this.hobbyRepository.deleteFromSavedHobbies(id);
+            this.hobbyRepository.deleteFromHobbyMatches(id);
+            this.hobbyRepository.deleteFromBusinessOwnerOffers(id);
+
+            // 3. Delete the hobby entity using direct native query
+            this.hobbyRepository.deleteHobbyByIdNative(id);
             return true;
         }
         return false;
     }
 
-    private void deleteResourcesById(Hobby byId) throws Exception {
-        String profileImgId = byId.getProfileImg_id();
-        String galleryImgId1 = byId.getGalleryImg1_id();
-        String galleryImgId2 = byId.getGalleryImg2_id();
-        String galleryImgId3 = byId.getGalleryImg3_id();
+    private void deleteResourcesById(Hobby byId) {
+        try {
+            List<String> resourceIds = new ArrayList<>();
+            if (byId.getProfileImg_id() != null && !byId.getProfileImg_id().trim().isEmpty()) {
+                resourceIds.add(byId.getProfileImg_id());
+            }
+            if (byId.getGalleryImg1_id() != null && !byId.getGalleryImg1_id().trim().isEmpty()) {
+                resourceIds.add(byId.getGalleryImg1_id());
+            }
+            if (byId.getGalleryImg2_id() != null && !byId.getGalleryImg2_id().trim().isEmpty()) {
+                resourceIds.add(byId.getGalleryImg2_id());
+            }
+            if (byId.getGalleryImg3_id() != null && !byId.getGalleryImg3_id().trim().isEmpty()) {
+                resourceIds.add(byId.getGalleryImg3_id());
+            }
 
-        cloudinary.api().deleteResources(Arrays.asList(profileImgId, galleryImgId1, galleryImgId2, galleryImgId3),
-                Map.of("invalidate", true));
+            if (cloudinary != null && cloudinary.api() != null && !resourceIds.isEmpty()) {
+                cloudinary.api().deleteResources(resourceIds, Map.of("invalidate", true));
+            }
+        } catch (Exception e) {
+            System.err.println("Cloudinary deleteResources failed (non-critical): " + e.getMessage());
+        }
     }
 
 

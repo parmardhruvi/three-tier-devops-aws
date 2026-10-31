@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -203,14 +204,41 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void findAndRemoveHobbyFromClientsRecords(Hobby hobby) {
+        if (hobby == null || hobby.getId() == null) {
+            return;
+        }
         List<AppClient> all = this.appClientRepository.findAll();
 
         for (AppClient appClient : all) {
-            appClient.getSaved_hobbies().remove(hobby);
-            appClient.getHobby_matches().remove(hobby);
+            boolean modified = false;
+            if (appClient.getSaved_hobbies() != null) {
+                modified |= appClient.getSaved_hobbies().removeIf(h -> h != null && Objects.equals(h.getId(), hobby.getId()));
+            }
+            if (appClient.getHobby_matches() != null) {
+                modified |= appClient.getHobby_matches().removeIf(h -> h != null && Objects.equals(h.getId(), hobby.getId()));
+            }
+            if (modified) {
+                this.appClientRepository.save(appClient);
+            }
         }
     }
 
+    @Override
+    public void findAndRemoveHobbyFromBusinessOwners(Hobby hobby) {
+        if (hobby == null || hobby.getId() == null) {
+            return;
+        }
+        List<BusinessOwner> all = this.businessOwnerRepository.findAll();
+
+        for (BusinessOwner bo : all) {
+            if (bo.getHobby_offers() != null) {
+                boolean removed = bo.getHobby_offers().removeIf(h -> h != null && Objects.equals(h.getId(), hobby.getId()));
+                if (removed) {
+                    this.businessOwnerRepository.save(bo);
+                }
+            }
+        }
+    }
 
     @Override
     public boolean businessExists(String businessName) {
@@ -225,6 +253,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public BusinessOwner findBusinessByUsername(String username) {
-        return this.businessOwnerRepository.findByUsername(username).get();
+        if (username == null) {
+            return null;
+        }
+        return this.businessOwnerRepository.findByUsername(username).orElse(null);
     }
 }

@@ -9,6 +9,7 @@ import backend.hobbiebackend.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
@@ -24,6 +25,16 @@ public class HomeController {
     @Autowired
     public HomeController(HobbyService hobbyService) {
         this.hobbyService = hobbyService;
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> healthEndpoint() {
+        return ResponseEntity.ok("OK");
     }
 
     @GetMapping("/home")

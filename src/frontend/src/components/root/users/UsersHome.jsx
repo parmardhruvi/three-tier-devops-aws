@@ -19,9 +19,11 @@ const UserHome = () => {
   });
 
   const [welcomeDiv, setWelcomeDiv] = useState({ showDiv: false });
+  const [selectedId, setSelectedId] = useState(null);
 
   const handleSort = (value) => (event) => {
     event.preventDefault();
+    setSelectedId(value);
 
     if (isUserLoggedIn) {
       navigate(`/hobbie/${value}`, { state: { id: value } });
@@ -65,7 +67,7 @@ const UserHome = () => {
                   <Link
                     to="#"
                     onClick={handleSort(hobby.id)}
-                    className={styles.card}
+                    className={`${styles.card} ${selectedId === hobby.id ? styles.active : ""}`}
                     id={hobby.id}
                   >
                     <section className={styles.card_image_container}>

@@ -11,6 +11,7 @@ variable "enable_deletion_protection" {
 variable "domain_names" {
   description = "List of domain names"
   type        = list(string)
+  default     = []
 }
 
 variable "cdn_price_class" {
@@ -39,4 +40,5 @@ variable "cdn_cached_methods" {
 variable "certificate_arn" {
   description = "ACM certificate ARN for HTTPS"
   type        = string
+  default     = ""
 }

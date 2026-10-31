@@ -6,20 +6,31 @@
 }
 
 .hobbie_title {
-  font-size: 64px;
+  display: block;
+  font-size: clamp(30px, 3.2vw, 44px);
+  line-height: 1.25;
   background: linear-gradient(to right, #494969, #696989);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: auto 3%;
+  margin: 0 0 10px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-weight: 700;
 }
 
 .hobbie_title_small {
-  margin-bottom: 30px;
-  margin: auto 13%;
-  font-size: 46px;
+  display: block;
+  margin-bottom: 16px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: clamp(24px, 4.5vw, 34px);
+  line-height: 1.25;
   background: linear-gradient(to right, #494969, #696989);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-weight: 700;
 }
 
 .slogan {
@@ -234,7 +245,8 @@
 
 @media all and (max-width: 930px) {
   .hobbie_title {
-    font-size: 44px;
+    font-size: 32px;
+    line-height: 1.25;
   }
 
   .hobbie_content_small {
@@ -255,7 +267,8 @@
   .hobbie_title_small {
     position: relative;
     left: 5%;
-    font-size: 40px;
+    font-size: 28px;
+    line-height: 1.25;
   }
   .buttons {
     position: relative;

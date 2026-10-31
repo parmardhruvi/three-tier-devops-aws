@@ -30,7 +30,8 @@ module "aws_rds" {
 
   db_name                     = var.db_name
   username                    = var.username
-  password                    = var.password
+  password_wo                 = var.password
+  password_wo_version         = 1
   port                        = tostring(var.port)
   manage_master_user_password = false
 

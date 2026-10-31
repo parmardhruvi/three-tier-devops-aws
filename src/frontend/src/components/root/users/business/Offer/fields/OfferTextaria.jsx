@@ -9,7 +9,8 @@ const OfferTextaria = (props) => {
           <span>{props.label}</span>
         </label>
         <textarea
-          defaultValue={props.defaultValue}
+          value={props.value !== undefined ? props.value : props.defaultValue}
+          defaultValue={props.value !== undefined ? undefined : props.defaultValue}
           onChange={props.onChange}
           className={styles.label_name}
           type="text"

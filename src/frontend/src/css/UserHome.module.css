@@ -37,7 +37,7 @@
 .rapper {
   flex: 1 1 auto;
   background: gold;
-  overflow: auto;
+  overflow: hidden;
   grid-column-end: span 4;
   display: flex;
   flex-direction: column;
@@ -47,12 +47,14 @@
   grid-column-end: span 4;
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
   cursor: pointer;
-  transition: all 0.5 ease 0s;
+  transition: all 0.3s ease 0s;
   background: linear-gradient(to right, #494969, #696989);
   width: auto;
   box-shadow: -2px 0px 33px 0px rgb(0 0 0 / 15%);
-  /* padding: 10px; */
+  text-decoration: none;
 }
 
 .card_image_container {
@@ -77,6 +79,10 @@
 
 .card_content {
   padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .card_content p {
@@ -92,19 +98,22 @@
 }
 .card_info {
   display: flex;
-  align-self: end;
+  width: 100%;
   align-items: center;
+  margin-top: 15px;
 }
 .card_price {
   margin-left: auto;
-  padding: 5px, 20px;
+  padding: 5px 0px;
   font-size: 14px;
   line-height: 20px;
   font-weight: 400;
   color: white;
 }
 
-.card:hover {
+.card:hover,
+.card:active,
+.card.active {
   transform: translateY(-7px);
 }
 

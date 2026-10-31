@@ -1,15 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import OfferInputField from "./fields/OfferInputField";
 import OfferTextaria from "./fields/OfferTextaria";
 import Footer from "../../../fragments/footer/Footer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AuthenticationService from "../../../../../api/authentication/AuthenticationService";
 import UpdateOfferDataService from "../../../../../api/hobby/UpdateOfferDataService";
-import { useState, useEffect } from "react";
+import HobbyDetailsDataService from "../../../../../api/hobby/HobbyDetailsDataService";
 import styles from "../../../../../css/CreateOffer.module.css";
 import style from "../../../../../css/Footer.module.css";
-import { useLocation } from "react-router-dom";
 import LoadingDots from "./animation/LoadingDots";
 
 const UpdateOffer = () => {
@@ -20,23 +19,67 @@ const UpdateOffer = () => {
   const [uploaded, setUploaded] = useState(false);
 
   const [files, setFiles] = useState({});
+
   const [info, setInfo] = useState({
-    id: location.state.id,
-    name: location.state.name,
-    slogan: location.state.slogan,
-    intro: location.state.intro,
-    description: location.state.description,
-    price: location.state.price,
+    id: location.state?.id || "",
+    name: location.state?.name || "",
+    slogan: location.state?.slogan || "",
+    intro: location.state?.intro || "",
+    description: location.state?.description || "",
+    price: location.state?.price || "",
     creator: username,
-    contactInfo: location.state.contactInfo,
+    contactInfo: location.state?.contactInfo || "",
+    category:
+      typeof location.state?.category === "object"
+        ? location.state?.category?.name?.toUpperCase() || ""
+        : (location.state?.category ? location.state.category.toUpperCase() : ""),
+    location:
+      typeof location.state?.location === "object"
+        ? location.state?.location?.name?.toUpperCase() || ""
+        : (location.state?.location ? location.state.location.toUpperCase() : ""),
+    profileImgUrl: location.state?.profileImgUrl || "",
+    galleryImgUrl1: location.state?.galleryImgUrl1 || "",
+    galleryImgUrl2: location.state?.galleryImgUrl2 || "",
+    galleryImgUrl3: location.state?.galleryImgUrl3 || "",
+    profileImg_id: location.state?.profileImg_id || location.state?.profile_img_id || "",
+    galleryImg1_id: location.state?.galleryImg1_id || location.state?.img1_id || "",
+    galleryImg2_id: location.state?.galleryImg2_id || location.state?.img2_id || "",
+    galleryImg3_id: location.state?.galleryImg3_id || location.state?.img3_id || "",
   });
 
   const [errors, setErrors] = useState({});
 
+  // Direct backend fetch fallback if needed
+  useEffect(() => {
+    const hobbyId = location.state?.id;
+    if (hobbyId && (!info.name || !info.category || !info.location)) {
+      HobbyDetailsDataService(hobbyId).then((response) => {
+        if (response && response.data) {
+          const d = response.data;
+          const cat = typeof d.category === "object" ? d.category?.name : d.category;
+          const loc = typeof d.location === "object" ? d.location?.name : d.location;
+
+          setInfo((prev) => ({
+            ...prev,
+            ...d,
+            name: prev.name || d.name || "",
+            slogan: prev.slogan || d.slogan || "",
+            intro: prev.intro || d.intro || "",
+            description: prev.description || d.description || "",
+            price: prev.price || d.price || "",
+            contactInfo: prev.contactInfo || d.contactInfo || "",
+            category: prev.category || (cat || "").toString().toUpperCase(),
+            location: prev.location || (loc || "").toString().toUpperCase(),
+          }));
+        }
+      });
+    }
+  }, [location.state?.id]);
+
   const validate = () => {
     const errors = {};
 
-    if (!files.profileImgUrl) {
+    if (!files.profileImgUrl && !info.profileImgUrl) {
       errors.profileImgUrl = "Profile photo is required";
     }
     if (!info.name) {
@@ -58,16 +101,10 @@ const UpdateOffer = () => {
     if (!info.intro) {
       errors.intro = "Intro is required";
     }
-    // else if (info.intro.length > 100 ) {
-    //     errors.intro = "Text has to be at least 100 characters long"
-    // }
 
     if (!info.description) {
       errors.description = "Description is required";
     }
-    // else if (info.description.length  > 200) {
-    //     errors.description = "Text has to be at least 500 characters long"
-    // }
 
     if (!info.price) {
       errors.price = "Price is required";
@@ -76,105 +113,120 @@ const UpdateOffer = () => {
     if (!info.location) {
       errors.location = "Location is required";
     }
-    if (!files.galleryImgUrl1) {
+
+    if (!files.galleryImgUrl1 && !info.galleryImgUrl1) {
       errors.galleryImgUrl1 = "You must upload 3 high quality photos";
     }
-    if (!files.galleryImgUrl2) {
+    if (!files.galleryImgUrl2 && !info.galleryImgUrl2) {
       errors.galleryImgUrl2 = "You must upload 3 high quality photos";
     }
-    if (!files.galleryImgUrl3) {
+    if (!files.galleryImgUrl3 && !info.galleryImgUrl3) {
       errors.galleryImgUrl3 = "You must upload 3 high quality photos";
     }
 
     if (!info.contactInfo) {
       errors.contactInfo = "Contact info is required";
     }
-    // else if (info.contactInfo.length < 20 || info.contactInfo.length > 200) {
-    //     errors.contactInfo = "Text has to be between 20 and 200 characters long"
-    // }
     return errors;
   };
 
   const submitHandler = (event) => {
     event.preventDefault();
 
-    const public_ids = [];
-    const img_urls = [];
-    let fileURL = "";
-
-    let errors = validate(info);
+    let errors = validate();
     setErrors(errors);
     if (Object.keys(errors).length === 0) {
       setLoading(true);
-      const filesToUpload = [
-        files.profileImgUrl,
-        files.galleryImgUrl1,
-        files.galleryImgUrl2,
-        files.galleryImgUrl3,
-      ];
-      const uploaders = filesToUpload.map(async (file) => {
+      const uploadImage = async (file, oldUrl, oldId) => {
+        if (!file) {
+          return {
+            url: oldUrl || "",
+            id: oldId || "",
+          };
+        }
+
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("tags", `dv6ktrxwv, hobbie`);
+        formData.append("tags", "dv6ktrxwv, hobbie");
         formData.append("upload_preset", "vgf01lnc");
         formData.append("timestamp", (Date.now() / 1000) | 0);
 
-        return await axios
-          .post(
-            "https://api.cloudinary.com/v1_1/dv6ktrxwv/image/upload",
-            formData,
-            {
-              headers: { "X-Requested-With": "XMLHttpRequest" },
-            }
-          )
-          .then(({ data }) => {
-            fileURL = data.secure_url;
-            img_urls.push(fileURL);
-            public_ids.push(data.public_id);
-          });
-      });
+        const { data } = await axios.post(
+          "https://api.cloudinary.com/v1_1/dv6ktrxwv/image/upload",
+          formData,
+          {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          }
+        );
 
-      // Once all the files are uploaded
-      axios.all(uploaders).then(() => {
-        setInfo((prevState) => ({
-          ...prevState,
-          profileImgUrl: img_urls[0],
-          galleryImgUrl1: img_urls[1],
-          galleryImgUrl2: img_urls[2],
-          galleryImgUrl3: img_urls[3],
-          profileImg_id: public_ids[0],
-          galleryImg1_id: public_ids[1],
-          galleryImg2_id: public_ids[2],
-          galleryImg3_id: public_ids[3],
-        }));
-        setUploaded(true);
-      });
+        return {
+          url: data.secure_url,
+          id: data.public_id,
+        };
+      };
+
+      Promise.all([
+        uploadImage(files.profileImgUrl, info.profileImgUrl, info.profileImg_id),
+        uploadImage(files.galleryImgUrl1, info.galleryImgUrl1, info.galleryImg1_id),
+        uploadImage(files.galleryImgUrl2, info.galleryImgUrl2, info.galleryImg2_id),
+        uploadImage(files.galleryImgUrl3, info.galleryImgUrl3, info.galleryImg3_id),
+      ])
+        .then((images) => {
+          const [profile, gallery1, gallery2, gallery3] = images;
+
+          const updatedOffer = {
+            ...info,
+            id: Number(info.id),
+            name: info.name,
+            slogan: info.slogan,
+            intro: info.intro,
+            description: info.description,
+            price: Number(info.price),
+            creator: info.creator || username,
+            contactInfo: info.contactInfo,
+            category:
+              typeof info.category === "object"
+                ? info.category?.name?.toUpperCase()
+                : (info.category || "").toUpperCase(),
+            location:
+              typeof info.location === "object"
+                ? info.location?.name?.toUpperCase()
+                : (info.location || "").toUpperCase(),
+            profileImgUrl: profile.url,
+            galleryImgUrl1: gallery1.url,
+            galleryImgUrl2: gallery2.url,
+            galleryImgUrl3: gallery3.url,
+            profileImg_id: profile.id || info.profileImg_id || "",
+            galleryImg1_id: gallery1.id || info.galleryImg1_id || "",
+            galleryImg2_id: gallery2.id || info.galleryImg2_id || "",
+            galleryImg3_id: gallery3.id || info.galleryImg3_id || "",
+          };
+
+          UpdateOfferDataService(updatedOffer)
+            .then((res) => {
+              setLoading(false);
+              window.location.href = "/offer/" + info.id;
+            })
+            .catch((err) => {
+              setLoading(false);
+              console.error("Update failed:", err);
+              const errMsg =
+                err.response?.data?.message ||
+                (typeof err.response?.data === "string" ? err.response?.data : "") ||
+                err.message ||
+                "Failed to update offer. Please try again.";
+              alert(errMsg);
+            });
+        })
+        .catch((error) => {
+          console.error("Image upload failed:", error);
+          setLoading(false);
+          alert("Image upload failed. Please try again.");
+        });
     } else {
       console.log(errors);
     }
   };
-
-  useEffect(() => {
-    const check_uploaded = () => {
-      if (uploaded) {
-        UpdateOfferDataService(info)
-          .then((res) => {
-            if (res.data != null) {
-              window.location.href = "/offer/" + info.id;
-            }
-          })
-          .catch((err) => {
-            let error = "";
-            setLoading(false);
-            if (err.response) {
-              error += err.response;
-            }
-            return error;
-          });
-      }
-    };
-    check_uploaded();
-  }, [uploaded, info, navigate]);
 
   return (
     <>
@@ -182,7 +234,8 @@ const UpdateOffer = () => {
         <h1 className={styles.title_offer}>Edit offer</h1>
         <form className={styles.form_offer} onSubmit={submitHandler}>
           <OfferInputField
-            defaultValue={location.state.name}
+            value={info.name || ""}
+            defaultValue={info.name || ""}
             type="text"
             placeholder="ex: Painting, Swimming classes etc.."
             label="Hobbie Name"
@@ -191,7 +244,8 @@ const UpdateOffer = () => {
             onChange={(e) => setInfo({ ...info, name: e.target.value })}
           />
           <OfferInputField
-            defaultValue={location.state.slogan}
+            value={info.slogan || ""}
+            defaultValue={info.slogan || ""}
             type="text"
             placeholder="your offer in one sentence..."
             label="Slogan"
@@ -203,6 +257,7 @@ const UpdateOffer = () => {
           <div className={styles.form_field_2}>
             <span>Category</span>
             <select
+              value={info.category}
               onChange={(e) => setInfo({ ...info, category: e.target.value })}
               className={styles.custom_select}
               id="category"
@@ -221,8 +276,10 @@ const UpdateOffer = () => {
               <small className={styles.errors_offer}>{errors.category}</small>
             )}
           </div>
+
           <OfferTextaria
-            defaultValue={location.state.intro}
+            value={info.intro || ""}
+            defaultValue={info.intro || ""}
             label="Intro"
             name="intro"
             error={errors.intro}
@@ -230,7 +287,8 @@ const UpdateOffer = () => {
           />
 
           <OfferTextaria
-            defaultValue={location.state.description}
+            value={info.description || ""}
+            defaultValue={info.description || ""}
             label="Description"
             name="description"
             error={errors.description}
@@ -238,7 +296,8 @@ const UpdateOffer = () => {
           />
 
           <OfferInputField
-            defaultValue={location.state.price}
+            value={info.price || ""}
+            defaultValue={info.price || ""}
             type="number"
             placeholder=""
             label="Price per entry"
@@ -250,6 +309,7 @@ const UpdateOffer = () => {
           <div className={styles.form_field_2}>
             <span>Location</span>
             <select
+              value={info.location}
               onChange={(e) => setInfo({ ...info, location: e.target.value })}
               className={styles.custom_select}
               id="location"
@@ -269,12 +329,11 @@ const UpdateOffer = () => {
           <div className={styles.form_field_photos}>
             <div className={styles.row_upload}>
               <label id="photo" className={styles.label_name}>
-                <span className="">Gallery</span>
+                <span>Gallery</span>
               </label>
               <article className={styles.button3}>
                 <p className={styles.choose_file}>
-                  {" "}
-                  {files.profileImgUrl ? "Photo uploaded" : "Choose a file"}
+                  {files.profileImgUrl || info.profileImgUrl ? "Photo uploaded" : "Choose a file"}
                 </p>
                 <input
                   onChange={(e) =>
@@ -287,8 +346,7 @@ const UpdateOffer = () => {
               </article>
               <article className={styles.button3}>
                 <p className={styles.choose_file}>
-                  {" "}
-                  {files.galleryImgUrl1 ? "Photo uploaded" : "Choose a file"}
+                  {files.galleryImgUrl1 || info.galleryImgUrl1 ? "Photo uploaded" : "Choose a file"}
                 </p>
                 <input
                   onChange={(e) =>
@@ -301,8 +359,7 @@ const UpdateOffer = () => {
               </article>
               <article className={styles.button3}>
                 <p className={styles.choose_file}>
-                  {" "}
-                  {files.galleryImgUrl2 ? "Photo uploaded" : "Choose a file"}
+                  {files.galleryImgUrl2 || info.galleryImgUrl2 ? "Photo uploaded" : "Choose a file"}
                 </p>
                 <input
                   onChange={(e) =>
@@ -315,8 +372,7 @@ const UpdateOffer = () => {
               </article>
               <article className={styles.button3}>
                 <p className={styles.choose_file}>
-                  {" "}
-                  {files.galleryImgUrl3 ? "Photo uploaded" : "Choose a file"}
+                  {files.galleryImgUrl3 || info.galleryImgUrl3 ? "Photo uploaded" : "Choose a file"}
                 </p>
                 <input
                   onChange={(e) =>
@@ -331,18 +387,22 @@ const UpdateOffer = () => {
                 errors.galleryImgUrl2 ||
                 errors.galleryImgUrl3 ||
                 errors.profileImgUrl) && (
-                <div className={styles.errors_offer}>
-                  You must upload high quality photos
-                </div>
-              )}
+                  <div className={styles.errors_offer}>
+                    You must upload high quality photos
+                  </div>
+                )}
             </div>
           </div>
+
           <OfferTextaria
-            defaultValue={location.state.contactInfo}
+            value={info.contactInfo || ""}
+            defaultValue={info.contactInfo || ""}
             label="Contact info"
             name="contact"
-            error={errors.contact}
-            onChange={(e) => setInfo({ ...info, contactInfo: e.target.value })}
+            error={errors.contactInfo}
+            onChange={(e) =>
+              setInfo({ ...info, contactInfo: e.target.value })
+            }
           />
 
           {loading && <LoadingDots />}

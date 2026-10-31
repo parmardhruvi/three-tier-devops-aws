@@ -36,7 +36,7 @@ variable "db_username" {
 variable "db_password" {
   description = "Database Password"
   type        = string
-  # sensitive   = true
+  # sensitive = false
 }
 
 variable "container_image" {
@@ -69,4 +69,5 @@ variable "enable_deletion_protection" {
 variable "certificate_arn" {
   description = "ACM certificate ARN for HTTPS"
   type        = string
+  default     = ""
 }

@@ -12,7 +12,7 @@ const SignUp = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [checked, setCheckBoxChecked] = useState("other");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [info, setInfo] = useState({
     username: "",
     fullName: "",
@@ -58,6 +58,7 @@ const SignUp = () => {
 
   const submitHandler = async (event) => {
     event.preventDefault();
+    setError("");
     let errors = validate(info);
     setErrors(errors);
 
@@ -71,7 +72,11 @@ const SignUp = () => {
           }
         })
         .catch((err) => {
-          setError(true);
+          if (err.response && err.response.status === 409) {
+            setError("This username or email already exist.");
+          } else {
+            setError("Something went wrong. Please try again.");
+          }
           setLoading(false);
         });
     } else {
@@ -85,7 +90,7 @@ const SignUp = () => {
         <h2>Sign up</h2>
         {error && (
           <div className={styles.errors}>
-            This username or email already exist.
+            {error}
           </div>
         )}
 

@@ -1,9 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styles from "../../../../../css/Hobbie.module.css";
 import AuthenticationService from "../../../../../api/authentication/AuthenticationService";
-import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import HobbyDetailsDataService from "../../../../../api/hobby/HobbyDetailsDataService";
 import { useMediaQuery } from "beautiful-react-hooks";
 import gallery_styles from "../../../../../css/Gallery.module.css";
@@ -17,9 +15,9 @@ import "react-confirm-alert/src/react-confirm-alert.css";
 const HobbiePages = () => {
   const isUserLoggedIn = AuthenticationService.isUserLoggedIn();
   const isBusinessLoggedIn = AuthenticationService.isBusinessLoggedIn();
-  let navigate = useNavigate();
+  const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
-  let params = useParams();
+  const params = useParams();
 
   const id = params.id;
   const [currentPage, setCurrentPage] = useState("about");
@@ -39,8 +37,11 @@ const HobbiePages = () => {
 
   const [hobbieDiv, setHobbieDiv] = useState({ showDiv: false });
 
-  const handleDelete = (hobby) => (event) => {
-    event.preventDefault();
+  const executeDelete = (offerId) => {
+    if (!offerId) {
+      console.error("Delete failed: No offer ID found to delete.");
+      return;
+    }
 
     confirmAlert({
       title: "Delete Offer",
@@ -49,10 +50,25 @@ const HobbiePages = () => {
         {
           label: "Yes",
           onClick: async () => {
-            const response = await DeleteHobbyService(hobby.id);
+            try {
+              console.log("Deleting offer with ID:", offerId);
+              const response = await DeleteHobbyService(offerId);
+              console.log("Delete response:", response);
 
-            if (response.data !== null) {
-              window.location.href = "/business-home";
+              if (
+                response &&
+                (response.status === 200 ||
+                  response.status === 204 ||
+                  response.data !== null)
+              ) {
+                navigate("/business-home");
+              } else {
+                console.error("Delete offer failed: unexpected response", response);
+              }
+            } catch (error) {
+              console.error("Error deleting offer with ID " + offerId + ":", error);
+              const errorDetails = error.response?.data || error.message;
+              console.error("Backend error details:", errorDetails);
             }
           },
         },
@@ -63,22 +79,37 @@ const HobbiePages = () => {
     });
   };
 
-  const handleEdit = (hobby) => (event) => {
+  const handleDelete = (param) => {
+    if (param && param.preventDefault) {
+      param.preventDefault();
+      executeDelete(hobby?.id || id);
+      return;
+    }
+    return (event) => {
+      if (event && event.preventDefault) {
+        event.preventDefault();
+      }
+      const offerId = param?.id || hobby?.id || id;
+      executeDelete(offerId);
+    };
+  };
+
+  const handleEdit = (event) => {
     event.preventDefault();
-    let path = "/edit-offer";
-    navigate(path, {
+
+    const categoryName =
+      hobby?.category?.name ||
+      (typeof hobby?.category === "string" ? hobby.category : "");
+    const locationName =
+      hobby?.location?.name ||
+      (typeof hobby?.location === "string" ? hobby.location : "");
+
+    navigate("/edit-offer", {
       state: {
-        id: hobby.id,
-        name: hobby.name,
-        slogan: hobby.slogan,
-        intro: hobby.intro,
-        description: hobby.description,
-        price: hobby.price,
-        contactInfo: hobby.contactInfo,
-        profileImgUrl: hobby.profileImgUrl,
-        galleryImgUrl1: hobby.galleryImgUrl1,
-        galleryImgUrl2: hobby.galleryImgUrl2,
-        galleryImgUrl3: hobby.galleryImgUrl3,
+        ...hobby,
+        id: hobby?.id || id,
+        category: categoryName ? categoryName.toUpperCase() : "",
+        location: locationName ? locationName.toUpperCase() : "",
       },
     });
   };
@@ -115,6 +146,8 @@ const HobbiePages = () => {
         if (!unmounted) {
           setHobby(response.data);
           console.log(response.data);
+          console.log("CATEGORY:", response.data.category);
+          console.log("LOCATION:", response.data.location);
           setHobbieDiv({ showDiv: false });
         }
         if (!Object.keys(response.data).length) {
@@ -132,14 +165,14 @@ const HobbiePages = () => {
   const changePage = (page) => {
     setCurrentPage(page);
   };
+
   return (
     <>
       {isColumnBasedSmall && (
         <div>
-          {" "}
-          <span className={styles.hobbie_title_small}>
+          <h1 className={styles.hobbie_title_small}>
             <b>{hobby.name}</b>
-          </span>{" "}
+          </h1>
           <h4 className={styles.slogan_small}> {hobby.slogan} </h4>
         </div>
       )}
@@ -261,10 +294,9 @@ const HobbiePages = () => {
               <section className={styles.hobbie_lable}>
                 {!isColumnBasedSmall && (
                   <div>
-                    {" "}
-                    <span className={styles.hobbie_title}>
+                    <h1 className={styles.hobbie_title}>
                       <b>{hobby.name}</b>
-                    </span>
+                    </h1>
                     <h4 className={styles.slogan}> {hobby.slogan} </h4>
                   </div>
                 )}
@@ -313,14 +345,14 @@ const HobbiePages = () => {
                       <div>
                         <Link
                           to="#"
-                          onClick={handleEdit(hobby)}
+                          onClick={handleEdit}
                           className={styles.btn}
                         >
                           Edit{" "}
                         </Link>
                         <Link
                           to="#"
-                          onClick={handleDelete(hobby)}
+                          onClick={handleDelete}
                           className={styles.btn}
                         >
                           Delete{" "}

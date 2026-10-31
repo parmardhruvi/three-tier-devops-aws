@@ -6,25 +6,25 @@ module "network" {
   azs_count   = var.azs_count
 }
 
-module "domain" {
-  source = "./modules/domain"
-  providers = {
-    aws.us_east_1 = aws.us_east_1
-  }
-
-  hosted_zone_name = var.hosted_zone_name
-  # Create certificates first, records will be added separately
-  certificate_domains = {
-    frontend = {
-      domains                = var.frontend_domains
-      use_us_east_1_provider = true # Required for CloudFront
-    }
-    backend = {
-      domains                = var.backend_domains
-      use_us_east_1_provider = false
-    }
-  }
-}
+# module "domain" {
+#   source = "./modules/domain"
+#   providers = {
+#     aws.us_east_1 = aws.us_east_1
+#   }
+# 
+#   hosted_zone_name = var.hosted_zone_name
+#   # Create certificates first, records will be added separately
+#   certificate_domains = {
+#     frontend = {
+#       domains                = var.frontend_domains
+#       use_us_east_1_provider = true # Required for CloudFront
+#     }
+#     backend = {
+#       domains                = var.backend_domains
+#       use_us_east_1_provider = false
+#     }
+#   }
+# }
 
 module "db" {
   source = "./modules/db"
@@ -56,12 +56,12 @@ module "backend" {
   service_cpu    = var.backend_service_cpu
   service_memory = var.backend_service_memory
 
-  db_host     = module.db.db_instance_address
+  db_host     = nonsensitive(module.db.db_instance_address)
   db_name     = module.db.db_instance_name
   db_username = module.db.db_instance_username
-  db_password = var.db_password
+  db_password = nonsensitive(var.db_password)
 
-  certificate_arn            = module.domain.certificate_arns["backend"]
+#   certificate_arn            = module.domain.certificate_arns["backend"]
   enable_deletion_protection = var.enable_deletion_protection
 }
 
@@ -72,32 +72,32 @@ module "frontend" {
   domain_names    = var.frontend_domains
   cdn_price_class = var.frontend_cdn_price_class
 
-  certificate_arn            = module.domain.certificate_arns["frontend"]
+#   certificate_arn            = module.domain.certificate_arns["frontend"]
   enable_deletion_protection = var.enable_deletion_protection
 }
 
 # Route53 records for frontend (created after CloudFront distribution)
-resource "aws_route53_record" "frontend" {
-  zone_id = module.domain.hosted_zone_id
-  name    = var.frontend_domains[0]
-  type    = "A"
-
-  alias {
-    name                   = module.frontend.cdn_domain_name
-    zone_id                = module.frontend.cdn_hosted_zone_id
-    evaluate_target_health = false
-  }
-}
+# resource "aws_route53_record" "frontend" {
+#   zone_id = module.domain.hosted_zone_id
+#   name    = var.frontend_domains[0]
+#   type    = "A"
+# 
+#   alias {
+#     name                   = module.frontend.cdn_domain_name
+#     zone_id                = module.frontend.cdn_hosted_zone_id
+#     evaluate_target_health = false
+#   }
+# }
 
 # Route53 records for backend
-resource "aws_route53_record" "backend" {
-  zone_id = module.domain.hosted_zone_id
-  name    = var.backend_domains[0]
-  type    = "A"
-
-  alias {
-    name                   = module.backend.alb_dns_name
-    zone_id                = module.backend.alb_zone_id
-    evaluate_target_health = true
-  }
-}
+# resource "aws_route53_record" "backend" {
+#   zone_id = module.domain.hosted_zone_id
+#   name    = var.backend_domains[0]
+#   type    = "A"
+# 
+#   alias {
+#     name                   = module.backend.alb_dns_name
+#     zone_id                = module.backend.alb_zone_id
+#     evaluate_target_health = true
+#   }
+# }

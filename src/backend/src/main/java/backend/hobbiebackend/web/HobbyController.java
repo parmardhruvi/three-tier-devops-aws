@@ -96,24 +96,56 @@ public class HobbyController {
 
     @PutMapping
     @Operation(summary = "Update hobby,(use existing hobby id)", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<?> updateHobby(@RequestBody HobbyInfoUpdateDto info) throws Exception {
-        Hobby offer = this.modelMapper.map(info, Hobby.class);
-        Category category = this.categoryService.findByName(info.getCategory());
-        Location location = this.locationService.getLocationByName(info.getLocation());
-        offer.setLocation(location);
-        offer.setCategory(category);
-        this.hobbyService.saveUpdatedHobby(offer);
-        return new ResponseEntity<Hobby>(offer, HttpStatus.CREATED);
+    public ResponseEntity<?> updateHobby(@RequestBody HobbyInfoUpdateDto info) {
+        try {
+            Category category = this.categoryService.findByName(info.getCategory());
+            Location location = this.locationService.getLocationByName(info.getLocation());
+
+            Hobby offer = new Hobby();
+            offer.setId(info.getId());
+            offer.setName(info.getName());
+            offer.setSlogan(info.getSlogan());
+            offer.setIntro(info.getIntro());
+            offer.setDescription(info.getDescription());
+            offer.setPrice(info.getPrice());
+            offer.setContactInfo(info.getContactInfo());
+            offer.setCreator(info.getCreator());
+            offer.setCategory(category);
+            offer.setLocation(location);
+            offer.setProfileImgUrl(info.getProfileImgUrl());
+            offer.setProfileImg_id(info.getProfileImg_id());
+            offer.setGalleryImgUrl1(info.getGalleryImgUrl1());
+            offer.setGalleryImg1_id(info.getGalleryImg1_id());
+            offer.setGalleryImgUrl2(info.getGalleryImgUrl2());
+            offer.setGalleryImg2_id(info.getGalleryImg2_id());
+            offer.setGalleryImgUrl3(info.getGalleryImgUrl3());
+            offer.setGalleryImg3_id(info.getGalleryImg3_id());
+
+            this.hobbyService.saveUpdatedHobby(offer);
+            return new ResponseEntity<Hobby>(offer, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("Error updating hobby with ID " + info.getId() + ":");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating hobby with ID " + info.getId() + ": " + e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete hobby", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<Long> deleteHobby(@PathVariable Long id) throws Exception {
-        boolean isRemoved = this.hobbyService.deleteHobby(id);
-        if (!isRemoved) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> deleteHobby(@PathVariable Long id) {
+        try {
+            boolean isRemoved = this.hobbyService.deleteHobby(id);
+            if (!isRemoved) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            return new ResponseEntity<>(id, HttpStatus.OK);
+        } catch (Exception e) {
+            System.err.println("Error deleting hobby with ID " + id + ":");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting hobby with ID " + id + ": " + e.getMessage());
         }
-        return new ResponseEntity<>(id, HttpStatus.OK);
     }
 
     @GetMapping("/saved")

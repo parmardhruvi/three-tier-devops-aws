@@ -8,6 +8,7 @@ db_allocated_storage     = 5
 db_max_allocated_storage = 0
 db_apply_immediately     = true
 db_skip_final_snapshot   = true
+db_password              = "DbMySQL2027Safe#"
 
 # Backend
 backend_service_cpu    = 1024

@@ -23,6 +23,7 @@ services:
       - 8080:8080
     volumes:
       - ~/.m2:/root/.m2
+      - ./backend/src:/app/src
     networks:
       - backenddb-net
       - backendfrontend-net

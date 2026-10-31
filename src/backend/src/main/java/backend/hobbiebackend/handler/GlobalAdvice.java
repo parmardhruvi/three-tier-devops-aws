@@ -2,11 +2,15 @@ package backend.hobbiebackend.handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.ModelAndView;
 
-@ControllerAdvice
+import java.util.Map;
+
+@RestControllerAdvice
 class GlobalAdvice {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalAdvice.class);
 
@@ -15,6 +19,14 @@ class GlobalAdvice {
         ModelAndView modelAndView = new ModelAndView("handler");
         modelAndView.addObject("message", ex.getMessage());
         return modelAndView;
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, String>> handleConflictException(RuntimeException ex) {
+        LOGGER.warn("Conflict: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
     }
 }
 

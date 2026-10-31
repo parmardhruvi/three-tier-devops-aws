@@ -1,14 +1,17 @@
 import axios from "../customAxiosConfig/CustomAxiosConfig";
 
-const DeleteHobbyService = (id) => {
+const DeleteHobbyService = async (id) => {
   try {
-    return axios.delete(`/hobbies/${id}`);
+    return await axios.delete(`/hobbies/${id}`);
   } catch (err) {
-    let error = "";
-    if (err.response) {
-      error += err.response;
+    if (err.response && err.response.status === 404) {
+      try {
+        return await axios.delete(`/offers/${id}`);
+      } catch (fallbackErr) {
+        throw fallbackErr;
+      }
     }
-    return error;
+    throw err;
   }
 };
 

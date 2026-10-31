@@ -9,7 +9,8 @@ const OfferInputField = (props) => {
           <span>{props.label}</span>
         </label>
         <input
-          defaultValue={props.defaultValue}
+          value={props.value !== undefined ? props.value : props.defaultValue}
+          defaultValue={props.value !== undefined ? undefined : props.defaultValue}
           onChange={props.onChange}
           placeholder={props.placeholder}
           className={styles.h_n}

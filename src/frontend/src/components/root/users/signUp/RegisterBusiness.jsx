@@ -11,7 +11,7 @@ import LoadingDotsDark from "../login/animation/LoadingDotsDark";
 const RegisterBusiness = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [info, setInfo] = useState({
     username: "",
     businessName: "",
@@ -61,6 +61,7 @@ const RegisterBusiness = () => {
 
   const submitHandler = async (event) => {
     event.preventDefault();
+    setError("");
     const errors = validate(info);
     setErrors(errors);
 
@@ -74,7 +75,11 @@ const RegisterBusiness = () => {
           }
         })
         .catch((err) => {
-          setError(true);
+          if (err.response && err.response.status === 409) {
+            setError("This username, business name or email already exist.");
+          } else {
+            setError("Something went wrong. Please try again.");
+          }
           setLoading(false);
         });
     } else {
@@ -89,7 +94,7 @@ const RegisterBusiness = () => {
 
         {error && (
           <div className={styles.errors}>
-            This username, business name or email already exist.
+            {error}
           </div>
         )}
         <form className={styles.signup_form} onSubmit={submitHandler}>
