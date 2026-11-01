@@ -5,12 +5,14 @@ on:
       - main
     paths:
       - 'src/frontend/**'
+      - '.github/workflows/frontend-cicd.yaml'
 
   pull_request:
     branches:
       - main
     paths:
       - 'src/frontend/**'
+      - '.github/workflows/frontend-cicd.yaml'
 
 defaults:
   run:
@@ -60,7 +62,7 @@ jobs:
     name: Deploy to S3
     runs-on: ubuntu-latest
     needs: [test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.AWS_ACCESS_KEY_ID != ''
+    if: false # Skipped in CI (enable when AWS secrets are added to GitHub)
     environment: production
     steps:
       - uses: actions/checkout@v4
